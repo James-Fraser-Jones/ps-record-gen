@@ -7,6 +7,7 @@ import Data.List(intercalate)
 import System.Environment(getArgs)
 import System.Exit
 import Text.Read(readMaybe)
+import Data.List.Split(chunksOf)
 
 type PSFile = String
 
@@ -16,15 +17,23 @@ type PSFile = String
 gen :: IO ()
 gen = do
   putStrLn "Example Usage:"
-  putStrLn "./ps-record-gen-exe \"FILENAME.purs\" \"TYPEALIAS\" \"[(\\\"LABEL1\\\", \\\"TYPE1\\\")]\" \"TYPECON\" \"DATACON\""
+  putStrLn "./ps-record-gen-exe \"FILENAME.purs\" \"TYPEALIAS\" \"TYPECON\" \"DATACON\" \"LABEL1\" \"TYPE1\" \"LABEL2\" \"TYPE2\" ..."
   args <- getArgs
-  let [fileName, typeAlias, list, typeCon, dataCon] = args
-      mlist = readMaybe list :: Maybe [(String, String)]
-  maybe failure (success fileName typeAlias typeCon dataCon) mlist
+  let len = length args
+  if len >= 6 && even len
+  then do
+    let [fileName, typeAlias, typeCon, dataCon] = take 4 args
+        list = chunksOf 2 $ drop 4 args
+        tlist = package <$> list
+    success fileName typeAlias typeCon dataCon tlist
+  else failure
+
+package :: [a] -> (a, a)
+package [x, y] = (x, y)
 
 failure :: IO ()
 failure = do
-  putStrLn "Failed To Parse."
+  putStrLn "Failed To Parse Arguments"
   exitFailure
 
 success :: FilePath -> String -> String -> String -> [(String, String)] -> IO ()
